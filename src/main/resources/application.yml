@@ -8,7 +8,7 @@ spring:
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/bs
+    url: jdbc:mysql://localhost:3306/picture
     username: root
     password: 123456
 
@@ -34,5 +34,5 @@ knife4j:
       default:
         api-rule: package
         api-rule-resources:
-          - com/zzm/picturebackend/controller
+          - com.zzm.picturebackend.controller
 
