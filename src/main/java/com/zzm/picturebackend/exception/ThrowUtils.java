@@ -1,5 +1,9 @@
 package com.zzm.picturebackend.exception;
 
+/**
+* 异常处理工具类
+*/
+
 public class ThrowUtils {
 
     /**

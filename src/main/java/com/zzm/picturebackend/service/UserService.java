@@ -1,6 +1,6 @@
-package generator.service;
+package com.zzm.picturebackend.service;
 
-import generator.domain.User;
+import com.zzm.picturebackend.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
