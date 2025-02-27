@@ -5,6 +5,12 @@ server:
 spring:
   application:
     name: picture-backend
+  profiles:
+    active: local
+  # 开放更大的文件上传体积
+  servlet:
+    multipart:
+      max-file-size: 10MB
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -35,4 +41,5 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.zzm.picturebackend.controller
+
 

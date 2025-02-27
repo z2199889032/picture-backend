@@ -1,6 +1,5 @@
 package com.zzm.picturebackend.model.dto.user;
 
-import com.sun.xml.internal.bind.v2.TODO;
 import lombok.Data;
 
 import java.io.Serializable;

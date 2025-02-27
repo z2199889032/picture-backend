@@ -400,10 +400,14 @@ public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
     // 添加排序条件
     queryWrapper.orderBy(StrUtil.isNotBlank(sortField), sortOrder.equals("ascend"), sortField);
 
-    // 返回构建好的查询条件对象
+    // 返回构建好地查询条件对象
     return queryWrapper;
 }
 
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    }
 
 
 
