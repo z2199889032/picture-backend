@@ -57,7 +57,7 @@ public class CosManager {
     public PutObjectResult putPictureObject(String key, File file) {
         PutObjectRequest putObjectRequest = new PutObjectRequest(cosClientConfig.getBucket(), key,
                 file);
-        // TODO:通过对象存储里的图片持久化处理
+        // 通过对象存储里的图片持久化处理
         // 对图片进行处理（获取基本信息也被视作为一种处理）
         PicOperations picOperations = new PicOperations();
         // 1 表示返回原图信息
