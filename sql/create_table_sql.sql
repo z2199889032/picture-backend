@@ -45,6 +45,10 @@ create table if not exists picture
     INDEX idx_userId (userId)              -- 提升基于用户 ID 的查询性能
 ) comment '图片' collate = utf8mb4_unicode_ci;
 
+# 分类未插入字段，默认插入默认值
+ALTER TABLE picture
+MODIFY category varchar(64) DEFAULT '默认' COMMENT '分类';
+
 
 ALTER TABLE picture
     -- 添加新列
@@ -59,7 +63,6 @@ CREATE INDEX idx_reviewStatus ON picture (reviewStatus);
 ALTER TABLE picture
     -- 添加新列
     ADD COLUMN thumbnailUrl varchar(512) NULL COMMENT '缩略图 url';
-
 
 -- 空间表
 create table if not exists space

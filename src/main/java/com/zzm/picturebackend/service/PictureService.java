@@ -3,6 +3,8 @@ package com.zzm.picturebackend.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zzm.picturebackend.model.dto.picture.PictureQueryRequest;
+import com.zzm.picturebackend.model.dto.picture.PictureReviewRequest;
+import com.zzm.picturebackend.model.dto.picture.PictureUploadByBatchRequest;
 import com.zzm.picturebackend.model.dto.picture.PictureUploadRequest;
 import com.zzm.picturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -29,12 +31,12 @@ public interface PictureService extends IService<Picture> {
     /**
      * 上传图片
      * 该方法用于处理图片上传请求，将图片保存到服务器并返回图片信息
-     * @param multipartFile 上传的图片文件
+     * @param inputSource 文件输入源
      * @param pictureUploadRequest 图片上传请求对象，包含图片的元数据信息
      * @param loginUser 当前登录的用户对象
      * @return 包含上传图片信息的 PictureVO 对象
      */
-    PictureVO uploadPicture(MultipartFile multipartFile,
+    PictureVO uploadPicture(Object inputSource,
                             PictureUploadRequest pictureUploadRequest,
                             User loginUser);
 
@@ -63,4 +65,32 @@ public interface PictureService extends IService<Picture> {
      * @return MyBatis-Plus 的查询条件包装器 QueryWrapper
      */
     QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest);
+
+    /**
+     *图片审核
+     * @param pictureReviewRequest
+     * @param loginUser
+     */
+    void doPictureReview(PictureReviewRequest pictureReviewRequest,User loginUser);
+
+    /**
+     * 填充审核参数
+     * @param picture
+     * @param loginUser
+     */
+    void fillReviewParams(Picture picture, User loginUser);
+
+    /**
+     * 批量抓取和创建图片
+     *
+     * @param pictureUploadByBatchRequest
+     * @param loginUser
+     * @return 成功创建的图片数
+     */
+    Integer uploadPictureByBatch(
+            PictureUploadByBatchRequest pictureUploadByBatchRequest,
+            User loginUser
+    );
+
+
 }
