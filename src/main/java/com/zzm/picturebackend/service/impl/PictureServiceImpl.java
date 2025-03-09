@@ -42,6 +42,8 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -455,27 +457,36 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
         return uploadCount;
     }
 
-    @Async
-    @Override
-    public void clearPictureFile(Picture oldPicture) {
-        // 判断该图片是否被多条记录使用
-        String pictureUrl = oldPicture.getUrl();
-        long count = this.lambdaQuery()
-                .eq(Picture::getUrl, pictureUrl)
-                .count();
-        // 有不止一条记录用到了该图片，不清理
-        if (count > 1) {
-            return;
-        }
-        // 删除图片
-        cosManager.deleteObject(pictureUrl);
+   @Async
+@Override
+public void clearPictureFile(Picture oldPicture) {
+    // 判断该图片是否被多条记录使用
+    String pictureUrl = oldPicture.getUrl();
+    long count = this.lambdaQuery()
+            .eq(Picture::getUrl, pictureUrl)
+            .count();
+    // 有不止一条记录用到了该图片，不清理
+    if (count > 1) {
+        return;
+    }
+    try {
+        // 提取原图路径部分
+        String picturePath = new URL(pictureUrl).getPath();
+        // 为留存需要，不删除
+//        cosManager.deleteObject(picturePath);
+//        log.info("原图已删除: {}", picturePath);
+
         // 清理缩略图
         String thumbnailUrl = oldPicture.getThumbnailUrl();
         if (StrUtil.isNotBlank(thumbnailUrl)) {
-            cosManager.deleteObject(thumbnailUrl);
+            String thumbnailPath = new URL(thumbnailUrl).getPath();
+            cosManager.deleteObject(thumbnailPath);
+            log.info("缩略图已删除: {}", thumbnailPath);
         }
+    } catch (MalformedURLException e) {
+        log.error("处理图片删除时遇到格式错误的 URL。图片 URL: {}", pictureUrl, e);
+        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "格式错误的 URL");
     }
-
-
+}
 
 }
