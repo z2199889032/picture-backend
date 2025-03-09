@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zzm.picturebackend.exception.BusinessException;
 import com.zzm.picturebackend.exception.ErrorCode;
 import com.zzm.picturebackend.exception.ThrowUtils;
+import com.zzm.picturebackend.manager.CosManager;
 import com.zzm.picturebackend.manager.FileManager;
 import com.zzm.picturebackend.manager.upload.FilePictureUpload;
 import com.zzm.picturebackend.manager.upload.PictureUploadTemplate;
@@ -34,6 +35,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -44,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.zzm.picturebackend.service.PictureService.*;
 
 /**
  * @author zhou
@@ -68,6 +73,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
 
     @Resource
     private UrlPictureUpload urlPictureUpload;
+    @Autowired
+    private CosManager cosManager;
+
     /**
      * 校验图片
      * 该方法用于校验图片对象的有效性
@@ -111,10 +119,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
             pictureId = pictureUploadRequest.getId();
         }
         // 如果是更新图片，需要校验图片是否存在
+        Picture oldPicture = null;
         if (pictureId != null) {
 
-            Picture oldPicture = this.getById(pictureId);
-            ThrowUtils.throwIf( oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
+            oldPicture = this.getById(pictureId);
+            ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
             //仅本人或者管理员可编辑图片
             if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
@@ -133,6 +142,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
         Picture picture = new Picture();
         // 设置图片的URL
         picture.setUrl(uploadPictureResult.getUrl());
+        // 设置图片的缩略图URL
+        picture.setThumbnailUrl(uploadPictureResult.getThumbnailUrl());
         // 支持外层传递图片名称
         String picName = uploadPictureResult.getPicName();
         if (pictureUploadRequest != null && StrUtil.isNotBlank(pictureUploadRequest.getPicName())) {
@@ -163,6 +174,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
 
         // 保存或更新图片信息
         boolean result = this.saveOrUpdate(picture);
+        //清理图片资源
+        if (oldPicture != null) {
+            this.clearPictureFile(oldPicture);
+        }
         // 如果保存或更新失败，抛出操作错误异常
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
         // 返回图片的 VO 对象
@@ -438,6 +453,27 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
             }
         }
         return uploadCount;
+    }
+
+    @Async
+    @Override
+    public void clearPictureFile(Picture oldPicture) {
+        // 判断该图片是否被多条记录使用
+        String pictureUrl = oldPicture.getUrl();
+        long count = this.lambdaQuery()
+                .eq(Picture::getUrl, pictureUrl)
+                .count();
+        // 有不止一条记录用到了该图片，不清理
+        if (count > 1) {
+            return;
+        }
+        // 删除图片
+        cosManager.deleteObject(pictureUrl);
+        // 清理缩略图
+        String thumbnailUrl = oldPicture.getThumbnailUrl();
+        if (StrUtil.isNotBlank(thumbnailUrl)) {
+            cosManager.deleteObject(thumbnailUrl);
+        }
     }
 
 
