@@ -75,7 +75,12 @@ public class PictureVO implements Serializable {
     /**  
      * 用户 id  
      */  
-    private Long userId;  
+    private Long userId;
+
+    /**
+     * 空间 id
+     */
+    private Long spaceId;
   
     /**  
      * 创建时间  
@@ -116,7 +121,7 @@ public class PictureVO implements Serializable {
     /**  
      * 对象转封装类  
      */  
-    public static PictureVO objToVo(Picture picture) {  
+    public static PictureVO objToVo(Picture picture) {
         if (picture == null) {  
             return null;  
         }  
