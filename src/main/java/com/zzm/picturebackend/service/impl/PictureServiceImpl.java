@@ -333,6 +333,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
         String reviewMessage = pictureQueryRequest.getReviewMessage();
         Long reviewerId = pictureQueryRequest.getReviewerId();
         Long spaceId = pictureQueryRequest.getSpaceId();
+        Date startEditTime = pictureQueryRequest.getStartEditTime();
+        Date endEditTime = pictureQueryRequest.getEndEditTime();
         boolean nullSpaceId = pictureQueryRequest.isNullSpaceId();
         String sortField = pictureQueryRequest.getSortField(); // 获取排序字段
         String sortOrder = pictureQueryRequest.getSortOrder(); // 获取排序顺序
@@ -373,7 +375,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
         queryWrapper.eq(ObjUtil.isNotEmpty(reviewStatus), "reviewStatus", reviewStatus);
         // 根据reviewerId查询，如果reviewerId不为空
         queryWrapper.eq(ObjUtil.isNotEmpty(reviewerId), "reviewerId", reviewerId);
-
+        queryWrapper.ge(ObjUtil.isNotEmpty(startEditTime), "editTime", startEditTime);
+        queryWrapper.lt(ObjUtil.isNotEmpty(endEditTime), "editTime", endEditTime);
 
         // JSON 数组查询
         if (CollUtil.isNotEmpty(tags)) {
