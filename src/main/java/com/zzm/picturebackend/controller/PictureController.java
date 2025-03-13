@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zzm.picturebackend.annotation.AuthCheck;
+import com.zzm.picturebackend.api.imagesearch.so.SoImageSearchApiFacade;
+import com.zzm.picturebackend.api.imagesearch.so.model.SoImageSearchResult;
 import com.zzm.picturebackend.common.BaseResponse;
 import com.zzm.picturebackend.common.DeleteRequest;
 import com.zzm.picturebackend.common.ResultUtils;
@@ -23,6 +25,7 @@ import com.zzm.picturebackend.model.vo.PictureVO;
 import com.zzm.picturebackend.service.PictureService;
 import com.zzm.picturebackend.service.SpaceService;
 import com.zzm.picturebackend.service.UserService;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -34,8 +37,8 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -44,6 +47,7 @@ import java.util.concurrent.TimeUnit;
  * @Description:
  * @createDate 2025/2/27上午9:11
  */
+@Data
 @Slf4j
 @RestController
 @RequestMapping("/picture")
@@ -379,6 +383,45 @@ public class PictureController {
         int uploadCount = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
         return ResultUtils.success(uploadCount);
     }
+    /**
+     * 以图搜图(百度)
+     */
+    /*@PostMapping("/search/picture")
+    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
+        ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
+        Long pictureId = searchPictureByPictureRequest.getPictureId();
+        ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
+        Picture oldPicture = pictureService.getById(pictureId);
+        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+        List<ImageSearchResult> resultList = ImageSearchApiFacade.searchImage(oldPicture.getUrl());
+        return ResultUtils.success(resultList);
+    }*/
+    /**
+     * 以图搜图（360）
+     */
+    @PostMapping("/search/picture/so")
+public BaseResponse<List<SoImageSearchResult>> searchPictureByPictureIsSo(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
+    ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
+    Long pictureId = searchPictureByPictureRequest.getPictureId();
+    ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
+    Picture oldPicture = pictureService.getById(pictureId);
+    ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+    List<SoImageSearchResult> resultList = new ArrayList<>();
+    // 这个 start 是控制查询多少页, 每页是 20 条
+    int start = 0;
+    while (resultList.size() <= 50) {
+        List<SoImageSearchResult> tempList = SoImageSearchApiFacade.searchImage(
+                oldPicture.getUrl(), start
+        );
+        if (tempList.isEmpty()) {
+            break;
+        }
+        resultList.addAll(tempList);
+        start += tempList.size();
+    }
+    return ResultUtils.success(resultList);
+}
+
 
 
 }
