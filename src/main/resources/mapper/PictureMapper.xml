@@ -27,7 +27,7 @@
         <result property="reviewMessage" column="reviewMessage" />
         <result property="reviewerId" column="reviewerId" />
         <result property="reviewTime" column="reviewTime" />
-<!--        <result property="picColor" column="picColor" />-->
+        <result property="picColor" column="picColor" />
 
     </resultMap>
 
@@ -35,6 +35,6 @@
         id,url,name,introduction,category,tags,
         picSize,picWidth,picHeight,picScale,picFormat,
         userId,spaceId,createTime,editTime,updateTime,isDelete,
-        reviewStatus,reviewMessage,reviewerId,reviewTime,thumbnailUrl,
+        reviewStatus,reviewMessage,reviewerId,reviewTime,thumbnailUrl,picColor,
     </sql>
 </mapper>

@@ -114,6 +114,11 @@ public class Picture implements Serializable {
      * 更新时间  
      */
     private Date updateTime;
+    /**
+     * 图片主色调
+     */
+    private String picColor;
+
 
 
     /**

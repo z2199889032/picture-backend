@@ -53,19 +53,6 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/picture")
 public class PictureController {
 
-    @Resource
-    private UserService userService;
-
-    @Resource
-    private PictureService pictureService;
-
-    @Resource
-    private StringRedisTemplate stringRedisTemplate;
-
-    @Resource
-    private SpaceService spaceService;
-
-
     /**
      * 本地缓存
      */
@@ -75,8 +62,14 @@ public class PictureController {
                     // 缓存 5 分钟移除
                     .expireAfterWrite(Duration.ofMinutes(5))
                     .build();
-
-
+    @Resource
+    private UserService userService;
+    @Resource
+    private PictureService pictureService;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private SpaceService spaceService;
 
     /**
      * 上传图片（可重新上传）
@@ -400,7 +393,7 @@ public class PictureController {
      * 以图搜图（360）
      */
     @PostMapping("/search/picture/so")
-public BaseResponse<List<SoImageSearchResult>> searchPictureByPictureIsSo(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
+    public BaseResponse<List<SoImageSearchResult>> searchPictureByPictureIsSo(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
     ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
     Long pictureId = searchPictureByPictureRequest.getPictureId();
     ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
@@ -420,8 +413,23 @@ public BaseResponse<List<SoImageSearchResult>> searchPictureByPictureIsSo(@Reque
         start += tempList.size();
     }
     return ResultUtils.success(resultList);
-}
+    }
 
+    /**
+     * 按照颜色搜索
+     * @param searchPictureByColorRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/search/color")
+    public BaseResponse<List<PictureVO>> searchPictureByColor(@RequestBody SearchPictureByColorRequest searchPictureByColorRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(searchPictureByColorRequest == null, ErrorCode.PARAMS_ERROR);
+        String picColor = searchPictureByColorRequest.getPicColor();
+        Long spaceId = searchPictureByColorRequest.getSpaceId();
+        User loginUser = userService.getLoginUser(request);
+        List<PictureVO> result = pictureService.searchPictureByColor(spaceId, picColor, loginUser);
+        return ResultUtils.success(result);
+    }
 
 
 }
