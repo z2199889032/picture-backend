@@ -106,4 +106,3 @@ public class GetOutPaintingTaskResponse {
         private Integer failed;
     }
 }
-

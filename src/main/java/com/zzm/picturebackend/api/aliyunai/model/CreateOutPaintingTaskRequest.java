@@ -107,4 +107,3 @@ public class CreateOutPaintingTaskRequest implements Serializable {
         private Boolean addWatermark = false;
     }
 }
-

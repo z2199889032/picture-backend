@@ -55,4 +55,3 @@ public class CreateOutPaintingTaskResponse {
     private String requestId;
 
 }
-
