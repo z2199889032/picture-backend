@@ -74,6 +74,9 @@ public class UrlPictureUpload extends PictureUploadTemplate {
     @Override
     protected <T> String getOriginFilename(T inputSource) {
         String fileUrl = (String) inputSource;
+        if (fileUrl.contains("?")){
+            fileUrl = fileUrl.substring(0, fileUrl.indexOf("?"));
+        }
         // 从 URL 中提取文件名
         return fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
     }
