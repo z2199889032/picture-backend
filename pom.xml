@@ -8,12 +8,15 @@
     <name>picture-backend</name>
     <description>picture-backend</description>
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring-boot.version>2.7.6</spring-boot.version>
     </properties>
     <dependencies>
+
+
+
 
 
         <!-- MyBatis Plus 分页插件 -->
