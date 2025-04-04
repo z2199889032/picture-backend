@@ -73,9 +73,8 @@ public class SpaceController {
         // 如果空间不存在，抛出异常
         ThrowUtils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
         // 判断是否为空间所有者或管理员
-        if (!oldSpace.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        spaceService.checkSpaceAuth(loginUser,oldSpace);
+
         // 操作数据库删除空间
         boolean result = spaceService.removeById(id);
         // 如果删除失败，抛出异常
@@ -213,9 +212,7 @@ public class SpaceController {
         // 如果空间不存在，抛出异常
         ThrowUtils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
         // 判断是否为空间所有者或管理员
-        if (!oldSpace.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        spaceService.checkSpaceAuth(loginUser,oldSpace);
         // 操作数据库更新空间
         boolean result = spaceService.updateById(space);
         // 如果更新失败，抛出异常
