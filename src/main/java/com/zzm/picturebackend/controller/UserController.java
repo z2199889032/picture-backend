@@ -1,6 +1,9 @@
 package com.zzm.picturebackend.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zzm.picturebackend.config.CosClientConfig;
+import com.zzm.picturebackend.manager.CosManager;
+import lombok.extern.slf4j.Slf4j;
 import com.zzm.picturebackend.annotation.AuthCheck;
 import com.zzm.picturebackend.common.BaseResponse;
 import com.zzm.picturebackend.common.DeleteRequest;
@@ -16,18 +19,25 @@ import com.zzm.picturebackend.model.vo.UserVO;
 import com.zzm.picturebackend.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/user")
 public class UserController {
 
     @Resource
+    private CosManager cosManager;
+
+    @Resource
     private UserService userService;
 
+    @Resource
+    protected CosClientConfig cosClientConfig;
     /**
      * 用户注册接口。
      */
@@ -241,5 +251,108 @@ public class UserController {
 
         // 返回成功响应，包含分页用户封装列表
         return ResultUtils.success(userVOPage);
+    }
+
+    /**
+     * 管理员修改用户信息接口。
+     */
+    @PostMapping("/update/info")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> updateUserInfo(@RequestBody UserUpdateRequest userUpdateRequest) {
+        // 检查更新请求参数是否为空或ID是否合法
+        if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        // 创建新的用户对象
+        User user = new User();
+
+        // 将请求参数复制到用户对象中
+        BeanUtils.copyProperties(userUpdateRequest, user);
+
+        // 调用服务层方法更新用户，并返回更新结果
+        boolean result = userService.updateById(user);
+
+        // 如果更新失败，抛出操作错误异常
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+
+        // 返回成功响应
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 用户修改个人信息接口。
+     */
+    @PostMapping("/update/my")
+    public BaseResponse<Boolean> updateMyInfo(@RequestPart(value = "file", required = false) MultipartFile file,
+                                             @RequestPart("userUpdateInfoRequest") UserUpdateInfoRequest userUpdateInfoRequest,
+                                             HttpServletRequest request) {
+        // 检查更新请求参数是否为空
+        ThrowUtils.throwIf(userUpdateInfoRequest == null, ErrorCode.PARAMS_ERROR);
+
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+
+        // 创建新的用户对象
+        User user = new User();
+        user.setId(loginUser.getId());
+
+        // 设置要更新的字段
+        user.setUserName(userUpdateInfoRequest.getUserName());
+
+        // 如果上传了新的头像图片，处理文件上传
+        if (file != null) {
+            // 获取文件名
+            String filename = file.getOriginalFilename();
+            // 构建文件路径
+            String filepath = String.format("/user/avatar/%s/%s", loginUser.getId(), filename);
+            
+            java.io.File tempFile = null;
+            try {
+                // 创建临时文件
+                tempFile = java.io.File.createTempFile(filepath, null);
+                // 将上传的文件内容写入临时文件
+                file.transferTo(tempFile);
+                // 上传文件到对象存储
+                cosManager.putObject(filepath, tempFile);
+                // 设置新的头像URL，添加域名前缀
+                String fullAvatarUrl = cosClientConfig.getHost()  + filepath;
+                user.setUserAvatar(fullAvatarUrl);
+            } catch (Exception e) {
+                log.error("avatar upload error, filepath = " + filepath, e);
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "头像上传失败");
+            } finally {
+                if (tempFile != null) {
+                    boolean delete = tempFile.delete();
+                    if (!delete) {
+                        log.error("temp file delete error, filepath = {}", filepath);
+                    }
+                }
+            }
+        } else {
+            // 如果没有上传新图片，检查并处理请求中的头像URL
+            String avatarUrl = userUpdateInfoRequest.getUserAvatar();
+            if (avatarUrl != null && !avatarUrl.startsWith(cosClientConfig.getHost() )) {
+                // 如果URL不包含域名前缀，则添加
+                avatarUrl = cosClientConfig.getHost()  + avatarUrl;
+            }
+            user.setUserAvatar(avatarUrl);
+        }
+
+        // 如果提供了新密码，则更新密码
+        String newPassword = userUpdateInfoRequest.getUserPassword();
+        if (newPassword != null && !newPassword.isEmpty()) {
+            String encryptPassword = userService.getEncryptPassword(newPassword);
+            user.setUserPassword(encryptPassword);
+        }
+
+        // 调用服务层方法更新用户，并返回更新结果
+        boolean result = userService.updateById(user);
+
+        // 如果更新失败，抛出操作错误异常
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+
+        // 返回成功响应
+        return ResultUtils.success(true);
     }
 }
