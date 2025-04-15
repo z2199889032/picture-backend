@@ -44,6 +44,13 @@ public class SpaceController {
     private SpaceService spaceService;
 
 
+    /**
+     * 处理添加空间的POST请求。
+     *
+     * @param spaceAddRequest 包含空间新增信息的请求体参数
+     * @param request         HTTP请求对象，用于获取当前登录用户信息
+     * @return 包含新创建空间ID的BaseResponse对象，若成功；否则返回错误信息
+     */
     @PostMapping("/add")
     public BaseResponse<Long> addSpace(@RequestBody SpaceAddRequest spaceAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceAddRequest == null, ErrorCode.PARAMS_ERROR);
@@ -51,9 +58,8 @@ public class SpaceController {
         User loginUser = userService.getLoginUser(request);
         long newId = spaceService.addSpace(spaceAddRequest, loginUser);
         return ResultUtils.success(newId);
-
-
     }
+
 
     /**
      * 删除空间

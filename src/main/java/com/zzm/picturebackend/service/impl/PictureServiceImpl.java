@@ -52,8 +52,8 @@ import java.awt.*;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -403,13 +403,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
     }
 
     /**
+     * 执行图片审核操作
      *
-     * @param pictureReviewRequest
-     * @param loginUser
+     * @param pictureReviewRequest 审核请求对象，包含图片ID、审核状态及审核信息
+     * @param loginUser            当前登录用户对象，用于记录审核人信息
      */
     @Override
     public void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser) {
-        // 校验参数
+        // 校验参数合法性
         ThrowUtils.throwIf(pictureReviewRequest == null, ErrorCode.PARAMS_ERROR);
         Long id = pictureReviewRequest.getId();
         Integer reviewStatus = pictureReviewRequest.getReviewStatus();
@@ -418,14 +419,17 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
         if (id == null || reviewStatusEnum == null || PictureReviewStatusEnum.REVIEWING.equals(reviewStatusEnum)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // 判断是否存在
+
+        // 检查图片是否存在
         Picture oldPicture = this.getById(id);
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
-        // 已是该状态
+
+        // 验证是否重复审核
         if (oldPicture.getReviewStatus().equals(reviewStatus)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请勿重复审核");
         }
-        // 更新审核状态
+
+        // 构建并执行更新操作
         Picture updatePicture = new Picture();
         BeanUtils.copyProperties(pictureReviewRequest, updatePicture);
         updatePicture.setReviewerId(loginUser.getId());
@@ -535,26 +539,29 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> // �
         return uploadCount;
     }
 
-   @Async
+@Async
+/**
+ * 异步清理图片文件及其缩略图。仅当图片仅被一条记录引用时执行删除操作。
+ *
+ * @param oldPicture 要清理的图片对象，包含原图URL和缩略图URL
+ */
 @Override
 public void clearPictureFile(Picture oldPicture) {
-    // 判断该图片是否被多条记录使用
+    // 检查该图片是否被多条记录引用，避免删除共享图片
     String pictureUrl = oldPicture.getUrl();
     long count = this.lambdaQuery()
             .eq(Picture::getUrl, pictureUrl)
             .count();
-    // 有不止一条记录用到了该图片，不清理
     if (count > 1) {
         return;
     }
     try {
-        // 提取原图路径部分
+        // 提取并处理原图路径（当前原图删除操作被注释）
         String picturePath = new URL(pictureUrl).getPath();
         // wei
-//        cosManager.deleteObject(picturePath);
-//        log.info("原图已删除: {}", picturePath);
-
-        // 清理缩略图
+        // cosManager.deleteObject(picturePath);
+        // log.info("原图已删除: {}", picturePath);
+        // 清理缩略图文件（仅当存在有效缩略图URL时执行）
         String thumbnailUrl = oldPicture.getThumbnailUrl();
         if (StrUtil.isNotBlank(thumbnailUrl)) {
             String thumbnailPath = new URL(thumbnailUrl).getPath();
@@ -562,50 +569,54 @@ public void clearPictureFile(Picture oldPicture) {
             log.info("缩略图已删除: {}", thumbnailPath);
         }
     } catch (MalformedURLException e) {
+        // 异常处理：记录错误日志并抛出业务异常
         log.error("处理图片删除时遇到格式错误的 URL。图片 URL: {}", pictureUrl, e);
         throw new BusinessException(ErrorCode.SYSTEM_ERROR, "格式错误的 URL");
     }
 }
 
 
-    @Override
-    public void deletePicture(long pictureId, User loginUser) {
-        ThrowUtils.throwIf(pictureId <= 0, ErrorCode.PARAMS_ERROR);
-        ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
-
-        // 判断是否存在
-        Picture oldPicture = this.getById(pictureId);
-        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
-
-        // 校验权限
-        checkPictureAuth(loginUser, oldPicture);
-
-        // 开启事务
-        transactionTemplate.execute(status -> {
-            // 操作数据库
-            boolean result = this.removeById(pictureId);
-            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-
-            // 释放额度
-            Long spaceId = oldPicture.getSpaceId();
-            if (spaceId != null) {
-                boolean update = spaceService.lambdaUpdate()
-                        .eq(Space::getId, spaceId)
-                        .setSql("totalSize = totalSize - " + oldPicture.getPicSize())
-                        .setSql("totalCount = totalCount - 1")
-                        .update();
-
-                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
-            }
-
-            return true;
-        });
-
-// 异步清理文件
-        this.clearPictureFile(oldPicture);
-
-    }
-
+/**
+ * 删除图片
+ * @param pictureId 图片ID，必须大于0
+ * @param loginUser 登录用户，不能为空
+ */
+@Override
+public void deletePicture(long pictureId, User loginUser) {
+    // 参数校验
+    ThrowUtils.throwIf(pictureId <= 0, ErrorCode.PARAMS_ERROR);
+    ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
+    // 检查图片是否存在
+    Picture oldPicture = this.getById(pictureId);
+    ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+    // 校验权限
+    checkPictureAuth(loginUser, oldPicture);
+    // 开启事务，执行删除操作和额度更新
+    transactionTemplate.execute(status -> {
+        // 操作数据库
+        boolean result = this.removeById(pictureId);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 释放额度
+        Long spaceId = oldPicture.getSpaceId();
+        if (spaceId != null) {
+            boolean update = spaceService.lambdaUpdate()
+                    .eq(Space::getId, spaceId)
+                    .setSql("totalSize = totalSize - " + oldPicture.getPicSize())
+                    .setSql("totalCount = totalCount - 1")
+                    .update();
+            ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+        }
+        return true;
+    });
+    // 异步清理文件
+    this.clearPictureFile(oldPicture);
+}
+    /**
+     * 编辑图片信息
+     * 该方法处理图片信息的编辑操作，包含数据转换、校验、权限控制及数据库更新
+     * @param pictureEditRequest 包含编辑后图片信息的请求对象（需包含图片ID）
+     * @param loginUser 当前登录用户对象（用于权限校验及审核信息补充）
+     */
     @Override
     public void editPicture(PictureEditRequest pictureEditRequest, User loginUser) {
         // 在此处将实体类和 DTO 进行转换
@@ -635,7 +646,16 @@ public void clearPictureFile(Picture oldPicture) {
         boolean result = this.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
     }
-
+/**
+ * 校验图片操作权限
+ * 该方法用于验证当前登录用户是否有权限对指定图片进行操作
+ * @param loginUser 当前登录用户对象
+ * @param picture 需要操作的目标图片对象
+ * @throws BusinessException 若权限不足则抛出业务异常
+ * 权限规则：
+ * 1. 公共图库（spaceId为null）：仅图片所有者或管理员可操作
+ * 2. 私有空间（spaceId不为空）：仅图片所有者可操作（空间管理员需通过空间所属关系间接验证）
+ */
     @Override
     public void checkPictureAuth(User loginUser, Picture picture) {
         Long spaceId = picture.getSpaceId();
@@ -653,51 +673,65 @@ public void clearPictureFile(Picture oldPicture) {
         }
 
     }
+    /**
+     * 根据颜色搜索图片
+     *
+     * @param spaceId   空间ID
+     * @param picColor  十六进制颜色字符串（如#FFFFFF）
+     * @param loginUser 登录用户信息
+     * @return 按颜色相似度排序后的图片列表（最多12条）
+     */
     @Override
     public List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser) {
-        // 1. 校验参数
+        // 校验参数合法性
         ThrowUtils.throwIf(spaceId == null || StrUtil.isBlank(picColor), ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
-        // 2. 校验空间权限
+
+        // 校验空间访问权限
         Space space = spaceService.getById(spaceId);
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
         if (!loginUser.getId().equals(space.getUserId())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间访问权限");
         }
-        // 3. 查询该空间下所有图片（必须有主色调）
+
+        // 查询该空间下所有具有主色调的图片
         List<Picture> pictureList = this.lambdaQuery()
                 .eq(Picture::getSpaceId, spaceId)
                 .isNotNull(Picture::getPicColor)
                 .list();
-        // 如果没有图片，直接返回空列表
         if (CollUtil.isEmpty(pictureList)) {
             return Collections.emptyList();
         }
-        // 将目标颜色转为 Color 对象
+
+        // 将目标颜色转换为Color对象
         Color targetColor = Color.decode(picColor);
-        // 4. 计算相似度并排序
+
+        // 计算颜色相似度并排序（取前12个）
         List<Picture> sortedPictures = pictureList.stream()
                 .sorted(Comparator.comparingDouble(picture -> {
-                    // 提取图片主色调
                     String hexColor = picture.getPicColor();
-                    // 没有主色调的图片放到最后
                     if (StrUtil.isBlank(hexColor)) {
                         return Double.MAX_VALUE;
                     }
                     Color pictureColor = Color.decode(hexColor);
-                    // 越大越相似
                     return -ColorSimilarUtils.calculateSimilarity(targetColor, pictureColor);
                 }))
-                // 取前 12 个
                 .limit(12)
                 .collect(Collectors.toList());
 
-        // 转换为 PictureVO
+        // 转换为VO对象
         return sortedPictures.stream()
                 .map(PictureVO::objToVo)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 批量编辑图片信息，包括分类、标签和名称规则，并校验权限。
+     * 该方法在事务中执行，确保操作的原子性。
+     *
+     * @param pictureEditByBatchRequest 包含批量编辑参数的请求对象，包括图片ID列表、空间ID、分类、标签和命名规则
+     * @param loginUser                 当前登录用户，用于权限校验
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser) {
@@ -744,23 +778,33 @@ public void clearPictureFile(Picture oldPicture) {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
     }
 
+    /**
+     * 创建图片外绘画任务
+     * @param createPictureOutPaintingTaskRequest 任务创建请求对象，包含图片ID、任务参数等信息
+     * @param loginUser 当前登录用户对象，用于权限校验
+     * @return 创建任务后的响应对象，包含任务ID和状态等信息
+     */
     @Override
     public CreateOutPaintingTaskResponse createPictureOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser) {
         // 获取图片信息
         Long pictureId = createPictureOutPaintingTaskRequest.getPictureId();
         Picture picture = Optional.ofNullable(this.getById(pictureId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR));
+
         // 权限校验
         checkPictureAuth(loginUser, picture);
+
         // 构造请求参数
         CreateOutPaintingTaskRequest taskRequest = new CreateOutPaintingTaskRequest();
         CreateOutPaintingTaskRequest.Input input = new CreateOutPaintingTaskRequest.Input();
         input.setImageUrl(picture.getUrl());
         taskRequest.setInput(input);
         BeanUtil.copyProperties(createPictureOutPaintingTaskRequest, taskRequest);
+
         // 创建任务
         return aliYunAiApi.createOutPaintingTask(taskRequest);
     }
+
 
 
     /**

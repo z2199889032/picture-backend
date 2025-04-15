@@ -8,13 +8,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zzm.picturebackend.constant.UserConstant;
 import com.zzm.picturebackend.exception.BusinessException;
 import com.zzm.picturebackend.exception.ErrorCode;
+import com.zzm.picturebackend.mapper.UserMapper;
 import com.zzm.picturebackend.model.dto.user.UserQueryRequest;
 import com.zzm.picturebackend.model.entity.User;
 import com.zzm.picturebackend.model.enums.UserRoleEnum;
 import com.zzm.picturebackend.model.vo.LoginUserVO;
 import com.zzm.picturebackend.model.vo.UserVO;
 import com.zzm.picturebackend.service.UserService;
-import com.zzm.picturebackend.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -50,7 +50,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * 3. 对用户密码进行加密处理
      * 4. 将新用户信息插入数据库，并返回用户ID
      */
-
     @Override
 public long userRegister(String userAccount, String userPassword, String checkPassword) {
     // 检查用户账号、密码和确认密码是否为空
@@ -403,7 +402,12 @@ public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
     // 返回构建好地查询条件对象
     return queryWrapper;
 }
-
+    /**
+     * 检查用户是否为管理员角色。
+     *
+     * @param user 需要检查的用户对象
+     * @return 是否为管理员角色（true/false）
+     */
     @Override
     public boolean isAdmin(User user) {
         return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());

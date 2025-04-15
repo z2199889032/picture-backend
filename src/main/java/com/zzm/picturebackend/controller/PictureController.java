@@ -333,21 +333,27 @@ public class PictureController {
         return ResultUtils.success(true);
     }
 
+    /**
+     * 获取图片标签类别列表
+     *
+     * @return 包含预定义标签和类别的成功响应对象 {@link BaseResponse}
+     */
     @GetMapping("/tag_category")
     public BaseResponse<PictureTagCategory> listPictureTagCategory() {
         // 创建图片标签类别对象
         PictureTagCategory pictureTagCategory = new PictureTagCategory();
-        // 定义标签列表
+        // 定义预设的标签列表
         List<String> tagList = Arrays.asList("热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意");
-        // 定义类别列表
+        // 定义预设的类别列表
         List<String> categoryList = Arrays.asList("默认", "模板", "电商", "表情包", "素材", "海报");
-        // 设置标签列表
+        // 设置标签列表到对象
         pictureTagCategory.setTagList(tagList);
-        // 设置类别列表
+        // 设置类别列表到对象
         pictureTagCategory.setCategoryList(categoryList);
-        // 返回结果
+        // 返回成功响应
         return ResultUtils.success(pictureTagCategory);
     }
+
 
     /**
      * 审核图片

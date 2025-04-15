@@ -1,22 +1,22 @@
 package com.zzm.picturebackend.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.zzm.picturebackend.config.CosClientConfig;
-import com.zzm.picturebackend.manager.CosManager;
-import lombok.extern.slf4j.Slf4j;
 import com.zzm.picturebackend.annotation.AuthCheck;
 import com.zzm.picturebackend.common.BaseResponse;
 import com.zzm.picturebackend.common.DeleteRequest;
 import com.zzm.picturebackend.common.ResultUtils;
+import com.zzm.picturebackend.config.CosClientConfig;
 import com.zzm.picturebackend.constant.UserConstant;
 import com.zzm.picturebackend.exception.BusinessException;
 import com.zzm.picturebackend.exception.ErrorCode;
 import com.zzm.picturebackend.exception.ThrowUtils;
+import com.zzm.picturebackend.manager.CosManager;
 import com.zzm.picturebackend.model.dto.user.*;
 import com.zzm.picturebackend.model.entity.User;
 import com.zzm.picturebackend.model.vo.LoginUserVO;
 import com.zzm.picturebackend.model.vo.UserVO;
 import com.zzm.picturebackend.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;

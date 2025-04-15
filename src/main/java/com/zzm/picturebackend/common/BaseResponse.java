@@ -1,15 +1,15 @@
 package com.zzm.picturebackend.common;
 
-/*
-  通用返回类
-  用于封装接口返回的数据，提供统一的响应格式
-  @param <T> 返回数据的类型
- */
+
 import com.zzm.picturebackend.exception.ErrorCode;
 import lombok.Data;
 
 import java.io.Serializable;
-
+/*
+  通用返回类
+  用于封装接口返回的数据，提供统一的响应格式
+  @param <T> 返回数据的类型
+*/
 @Data
 public class BaseResponse<T> implements Serializable {
 
